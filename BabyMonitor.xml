@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<voicemail xmlns="http://www.innovaphone.com/xsd/voicemail6.xsd">
+<!-- innovaphone Babylook - Raumueberwachung - Monitor == inno srl kwa 2012 V100 -->
+
+<function define="Wellcome"> 
+	<event type="timer" name="vbguard">
+ 		<pbx-disc /> 
+	</event>
+	<timer name="vbguard" sec="60" />
+	<assign out="$Teiln" value="" /> 
+  	<assign out="$Teiln-ok" value="false" /> 
+	<store-get root="" name="Track111.G711a" out-url="$ctrl" /> 
+        <pbx-prompt url="$ctrl" /> 
+	<call name="Localize" />
+	<event type="dtmf" block="false">
+		<pbx-getdtmfdigit out-dtmf="$dtmf" /> 
+		<switch var="$dtmf">
+			<case equal="#">
+  				<assign out="$Teiln-ok" value="true" /> 
+  				<return /> 
+				</case>
+ 			 </switch>
+  		<lib-strcat string="$Teiln" string2="$dtmf" out-string="$Teiln" /> 
+  	</event>
+	<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+ 	<lib-strcat string="$Promt" string2="04.g711a" out-string="$Promt" />
+	<store-get root="" name="$Promt" out-url="$ctrl" /> 
+	<pbx-prompt url="$ctrl" />
+	<assign out="$LCN" value="1" />  
+	<while notcond="$Teiln-ok">
+  		<store-get root="" name="silence.G711a" out-url="$ctrl" /> 
+  		<pbx-prompt url="$ctrl" sec="4" repeat="false"  /> 
+	</while>
+</function>
+<function define="Localize">
+	<event type="timer" name="vbguard">
+ 		<pbx-disc /> 
+	</event>
+	<timer name="vbguard" sec="60" />
+	<assign out="$Sprache" value="1" /> 
+	<store-getstat root="" name="Track200.g711a" out-error="$error"/>
+	<if notcond="$error">
+		<event type="dtmf" block="false">
+		<pbx-getdtmfdigit out-dtmf="$dtmf" /> 
+			<switch var="$dtmf">
+				<case equal="2">
+  					<assign out="$Sprache" value="2" /> 
+				</case>
+				<case equal="3">
+					<store-getstat root="" name="Track300.g711a" out-error="$error"/>
+					<if notcond="$error">
+						<assign out="$Sprache" value="3" /> 
+					</if>
+				</case>
+				<case equal="4">
+					<store-getstat root="" name="Track400.g711a" out-error="$error"/>
+					<if notcond="$error">
+						<assign out="$Sprache" value="4" /> 
+					</if>
+				</case>
+  			</switch>
+			<assign out="$Sprach-ok" value="true" /> 
+			<return /> 
+  		</event>
+		<store-get root="" name="Track99.g711a" out-url="$ctrl" /> 
+	        <pbx-prompt url="$ctrl" />
+		<while notcond="$Sprach-ok">
+  			<store-get root="" name="silence.G711a" out-url="$ctrl" /> 
+	  		<pbx-prompt url="$ctrl" sec="4" repeat="false"  /> 
+		</while>
+	</if>
+</function>
+<function define="PromptString">
+  		<assign out="$i" value="1" /> 
+  		<assign out="$c" value="" /> 
+  		<index value="$string" pos="$i" size="1" out="$c" /> 
+  		<lib-strlen string="$c" out="$len-c" /> 
+		<while cond="$len-c">
+			<switch var="$c">
+			<case equal="*">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="61" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2=".g711a" out-string="$filename" /> 
+  			</case>
+			<case equal="#">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="60" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2=".g711a" out-string="$filename" /> 
+  			</case>
+			<default>
+  				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="5" out-string="$Promt" /> 
+  				<lib-strcat string="$Promt" string2="$c" out-string="$ctrl" /> 
+  				<lib-strcat string="$ctrl" string2=".g711a" out-string="$filename" /> 
+  			</default>
+  			</switch>
+  			<store-get root="" name="$filename" out-url="$ctrl" /> 
+  			<pbx-prompt url="$ctrl" barge-in="false" /> 
+  			<add value="$i" value2="1" out="$i" /> 
+  			<assign out="$c" value="" /> 
+  			<index value="$string" pos="$i" size="1" out="$c" /> 
+  			<lib-strlen string="$c" out="$len-c" /> 
+  		</while>
+</function>
+<function define="Main">
+	<event type="timer" name="vbguard">
+		<pbx-disc/>
+        </event>
+	<event type="call-end">
+		<store-del root="$Teiln" name="/Messen.txt"/> 
+        </event>
+        <timer name="vbguard" sec="60" />
+        <call name="wellcome" />
+	<assign out="$Messkopf" value="" /> 
+	<index out="$res" value="$Teiln" pos="1" size="2"/> 
+	<switch var="$res">
+		<case equal="**">
+			<index out="$Teil2" value="$Teiln" pos="3" size="10"/> 
+			<assign out="$Teiln" value="$Teil2" /> 
+			<store-cookie root="$Teiln" name="/Messen.txt" value=""/>
+			<assign out="$Messkopf" value="True" /> 
+		</case>
+	</switch>
+	<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+ 	<lib-strcat string="$Promt" string2="05.g711a" out-string="$Promt" />
+	<store-get root="" name="$Promt" out-url="$ctrl" /> 
+      	<pbx-prompt url="$ctrl" /> 
+	<assign out="$string" value="$Teiln" /> 
+	<call name="PromptString" />
+	<store-getstat root="" name="$Teiln" out-error="$error"/>
+	<if cond="$error">
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+		<lib-strcat string="$Promt" string2="06.g711a" out-string="$Promt" />
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 
+        	<pbx-prompt url="$ctrl" /> 
+		<wait sec="2"/> 
+		<pbx-disc/>
+	</if>
+	<store-getstat root="$Teiln" name="/Stat.txt" out-error="$error"/>
+	<if cond="$error">
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+		<lib-strcat string="$Promt" string2="09.g711a" out-string="$Promt" />
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 
+        	<pbx-prompt url="$ctrl" /> 
+	</if>
+	<else>
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+		<lib-strcat string="$Promt" string2="07.g711a" out-string="$Promt" />
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+		<pbx-prompt url="$ctrl" /> 
+ 	</else>	
+	<switch var="$Messkopf">
+		<case equal="True">
+			<store-cookie root="$Teiln" name="/Messen.txt" value=""/>
+			<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+			<lib-strcat string="$Promt" string2="72.g711a" out-string="$Promt" /> 
+			<store-get root="" name="$Promt" out-url="$ctrl" /> 	
+			<pbx-prompt url="$ctrl" />
+			<while notcond="$Forever-ok">
+				<wait sec="1"/> 			
+				<timer name="vbguard" sec="60" />
+				<store-getstat root="$Teiln" name="/Stat.txt" out-error="$error"/>
+				<if cond="$error">
+					<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+					<lib-strcat string="$Promt" string2="09.g711a" out-string="$Promt" />
+					<store-get root="" name="$Promt" out-url="$ctrl" /> 
+			        	<pbx-prompt url="$ctrl" /> 
+					<wait sec="1"/> 
+					<pbx-disc/>
+				</if>
+				<wait sec="1"/> 			
+				<store-cookie root="$Teiln" name="/ReadCNTR.txt" out="$new"/>
+				<wait sec="1"/> 			
+				<switch var="$new">
+					<case equal="1">
+						<store-cookie root="$Teiln" name="/ReadCNTR.txt" value="0"/>
+						<store-cookie root="$Teiln" name="/Pegel.txt" out="$size4"/>
+						<assign out="$Size5" value="$size4" type="number" />
+<dbg string="$size5"/> 
+						
+						<switch var="$size5">
+							<case greater-equal="39000">
+								<assign out="$PW" value="49" />
+							</case>
+							<case greater-equal="38000">
+								<assign out="$PW" value="48" />
+							</case>
+							<case greater-equal="37000">
+								<assign out="$PW" value="47" />
+							</case>
+							<case greater-equal="36000">
+								<assign out="$PW" value="46" />
+							</case>
+							<case greater-equal="35000">
+								<assign out="$PW" value="45" />
+							</case>
+							<case greater-equal="34000">
+								<assign out="$PW" value="44" />
+							</case>
+							<case greater-equal="33000">
+								<assign out="$PW" value="43" />
+							</case>
+							<case greater-equal="32000">
+								<assign out="$PW" value="42" />
+							</case>
+							<case greater-equal="31000">
+								<assign out="$PW" value="41" />
+							</case>
+							<case greater-equal="30000">
+								<assign out="$PW" value="40" />
+							</case>
+							<case greater-equal="29000">
+								<assign out="$PW" value="39" />
+							</case>
+							<case greater-equal="28000">
+								<assign out="$PW" value="38" />
+							</case>
+							<case greater-equal="27000">
+								<assign out="$PW" value="37" />
+							</case>
+							<case greater-equal="26000">
+								<assign out="$PW" value="36" />
+							</case>
+							<case greater-equal="25000">
+								<assign out="$PW" value="35" />
+							</case>
+							<case greater-equal="24000">
+								<assign out="$PW" value="34" />
+							</case>
+							<case greater-equal="23000">
+								<assign out="$PW" value="33" />
+							</case>
+							<case greater-equal="22000">
+								<assign out="$PW" value="32" />
+							</case>
+							<case greater-equal="21000">
+								<assign out="$PW" value="31" />
+							</case>
+							<case greater-equal="20000">
+								<assign out="$PW" value="30" />
+							</case>
+							<case greater-equal="19000">
+								<assign out="$PW" value="29" />
+							</case>
+							<case greater-equal="18000">
+								<assign out="$PW" value="28" />
+							</case>
+							<case greater-equal="17000">
+								<assign out="$PW" value="27" />
+							</case>
+							<case greater-equal="16000">
+								<assign out="$PW" value="26" />
+							</case>
+							<case greater-equal="15000">
+								<assign out="$PW" value="25" />
+							</case>
+							<case greater-equal="14000">
+								<assign out="$PW" value="24" />
+							</case>
+							<case greater-equal="13000">
+								<assign out="$PW" value="23" />
+							</case>
+							<case greater-equal="12000">
+								<assign out="$PW" value="22" />
+							</case>
+							<case greater-equal="11000">
+								<assign out="$PW" value="21" />
+							</case>
+							<case greater-equal="10000">
+								<assign out="$PW" value="20" />
+							</case>
+							<case greater-equal="9000">
+								<assign out="$PW" value="59" />
+							</case>
+							<case greater-equal="8000">
+								<assign out="$PW" value="58" />
+							</case>
+							<case greater-equal="7000">
+								<assign out="$PW" value="57" />
+							</case>				
+							<case greater-equal="6000">
+								<assign out="$PW" value="56" />
+							</case>				
+							<case greater-equal="5000">
+								<assign out="$PW" value="55" />
+							</case>		
+							<case greater-equal="4000">
+								<assign out="$PW" value="54" />
+							</case>	
+							<case greater-equal="3000">
+								<assign out="$PW" value="53" />
+							</case>	
+							<case greater-equal="2000">
+								<assign out="$PW" value="52" />
+							</case>	
+							<case greater-equal="1000">
+								<assign out="$PW" value="51" />
+							</case>			
+							<case greater-equal="0">
+								<assign out="$PW" value="50" />
+							</case>
+						</switch>
+<dbg string2="$PW"/> 
+						<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+						<lib-strcat string="$Promt" string2="$PW" out-string="$Promt" />
+						<lib-strcat string="$Promt" string2=".g711a" out-string="$Promt" />  
+						<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+						<pbx-prompt url="$ctrl" />
+					</case>
+					<case equal="0">
+						<wait sec="1"/> 
+					</case>
+				</switch>
+			</while>
+		</case>
+	</switch>
+	<wait sec="1"/> 
+	<store-getstat root="$Teiln" name="/Online.g711a" out-error="$error"/>
+	<if cond="$error">
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+		<lib-strcat string="$Promt" string2="08.g711a" out-string="$Promt" />
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+        	<pbx-prompt url="$ctrl" /> 
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+		<lib-strcat string="$Promt" string2="71.g711a" out-string="$Promt" /> 
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+		<pbx-prompt url="$ctrl" />
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+		<lib-strcat string="$Promt" string2="72.g711a" out-string="$Promt" /> 
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+		<pbx-prompt url="$ctrl" />
+		<store-cookie root="$Teiln" name="/Pegel.txt" out="$size"/>
+		<switch var="$size">
+			<case greater="18000">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="55.g711a" out-string="$Promt" /> 
+				<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+				<pbx-prompt url="$ctrl" />
+				<wait sec="1"/> 				
+				<pbx-disc/> 
+  			</case>
+			<case greater="16000">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="54.g711a" out-string="$Promt" /> 
+				<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+				<pbx-prompt url="$ctrl" />
+				<wait sec="1"/> 				
+				<pbx-disc/> 
+  			</case>
+			<case greater="14000">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="53.g711a" out-string="$Promt" /> 
+				<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+				<pbx-prompt url="$ctrl" />
+				<wait sec="1"/> 				
+				<pbx-disc/> 
+  			</case>
+			<case greater="12000">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="52.g711a" out-string="$Promt" /> 
+				<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+				<pbx-prompt url="$ctrl" />
+				<wait sec="1"/> 				
+				<pbx-disc/> 
+  			</case>
+			<case greater="10000">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="51.g711a" out-string="$Promt" /> 
+				<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+				<pbx-prompt url="$ctrl" />
+				<wait sec="1"/> 				
+				<pbx-disc/> 
+  			</case>
+			</switch>
+			<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+			<lib-strcat string="$Promt" string2="50.g711a" out-string="$Promt" /> 
+			<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+			<pbx-prompt url="$ctrl" />
+			<wait sec="1"/> 
+		<pbx-disc/>
+	</if>
+	<else>
+		<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+	 	<lib-strcat string="$Promt" string2="10.g711a" out-string="$Promt" />
+		<store-get root="" name="$Promt" out-url="$ctrl" /> 		
+        	<pbx-prompt url="$ctrl" />
+		<store-get root="" name="beep.G711a" out-url="$ctrl" /> 
+	        <pbx-prompt url="$ctrl" />
+		<store-get root="$Teiln" name="/Online.g711a" out-url="$ctrl" /> 
+	        <pbx-prompt url="$ctrl" repeat="true" barge-in="false"/>  
+ 	</else>
+</function>
+</voicemail>
+<!-- Babylook wiki-src/xml/iBL 1,0,0,0 (C) innovaphone AG 2010-2012 -->

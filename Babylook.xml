@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<voicemail xmlns="http://www.innovaphone.com/xsd/voicemail6.xsd">
+<!-- innovaphone Babylook - Raumueberwachung == inno srl kwa 2012 V100 -->
+
+<function define="Wellcome"> 
+	<event type="call-end">
+             <store-del root="$cgpn" name="/Stat.txt"/> 
+	     <dbg string="$cgpn"/> 
+        </event>
+	<event type="timer" name="vbguard">
+ 		<pbx-disc /> 
+	</event>
+	<timer name="vbguard" sec="60" />
+	<assign out="$Teiln" value="" /> 
+  	<assign out="$Teiln-ok" value="false" /> 
+	<store-get root="" name="Track98.G711a" out-url="$ctrl" /> 
+        <pbx-prompt url="$ctrl" /> 
+	<call name="Localize" />
+	<event type="dtmf" block="false">
+		<pbx-getdtmfdigit out-dtmf="$dtmf" /> 
+		<switch var="$dtmf">
+			<case equal="#">
+  				<assign out="$Teiln-ok" value="true" /> 
+  				<return /> 
+				</case>
+ 			 </switch>
+  		<lib-strcat string="$Teiln" string2="$dtmf" out-string="$Teiln" /> 
+  	</event>
+	<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+ 	<lib-strcat string="$Promt" string2="00.g711a" out-string="$Promt" />
+	<store-get root="" name="$Promt" out-url="$ctrl" /> 
+        <pbx-prompt url="$ctrl" />
+	<while notcond="$Teiln-ok">
+  		<store-get root="" name="silence.G711a" out-url="$ctrl" /> 
+  		<pbx-prompt url="$ctrl" sec="4" repeat="false"  /> 
+	</while>
+</function>
+<function define="Localize">
+	<event type="timer" name="vbguard">
+ 		<pbx-disc /> 
+	</event>
+	<timer name="vbguard" sec="60" />
+	<assign out="$Sprache" value="1" /> 
+	<store-getstat root="" name="Track200.g711a" out-error="$error"/>
+	<if notcond="$error">
+		<event type="dtmf" block="false">
+		<pbx-getdtmfdigit out-dtmf="$dtmf" /> 
+			<switch var="$dtmf">
+				<case equal="2">
+  					<assign out="$Sprache" value="2" /> 
+				</case>
+				<case equal="3">
+					<store-getstat root="" name="Track300.g711a" out-error="$error"/>
+					<if notcond="$error">
+						<assign out="$Sprache" value="3" /> 
+					</if>
+				</case>
+				<case equal="4">
+					<store-getstat root="" name="Track400.g711a" out-error="$error"/>
+					<if notcond="$error">
+						<assign out="$Sprache" value="4" /> 
+					</if>
+				</case>
+  			</switch>
+			<assign out="$Sprach-ok" value="true" /> 
+			<return /> 
+  		</event>
+		<store-get root="" name="Track99.g711a" out-url="$ctrl" /> 
+	        <pbx-prompt url="$ctrl" />
+		<assign out="$LCN" value="1" />  
+		<while notcond="$Sprach-ok">
+  			<store-get root="" name="silence.G711a" out-url="$ctrl" /> 
+	  		<pbx-prompt url="$ctrl" sec="4" repeat="false"  /> 
+		</while>
+	</if>
+</function>
+<function define="PromptString">
+  		<assign out="$i" value="1" /> 
+  		<assign out="$c" value="" /> 
+  		<index value="$string" pos="$i" size="1" out="$c" /> 
+  		<lib-strlen string="$c" out="$len-c" /> 
+		<while cond="$len-c">
+			<switch var="$c">
+			<case equal="*">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="61" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2=".g711a" out-string="$filename" /> 
+  			</case>
+			<case equal="#">
+				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="60" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2=".g711a" out-string="$filename" /> 
+  			</case>
+			<default>
+  				<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" /> 
+				<lib-strcat string="$Promt" string2="5" out-string="$Promt" /> 
+  				<lib-strcat string="$Promt" string2="$c" out-string="$ctrl" /> 
+  				<lib-strcat string="$ctrl" string2=".g711a" out-string="$filename" /> 
+  			</default>
+  			</switch>
+  			<store-get root="" name="$filename" out-url="$ctrl" /> 
+  			<pbx-prompt url="$ctrl" barge-in="false" /> 
+  			<add value="$i" value2="1" out="$i" /> 
+  			<assign out="$c" value="" /> 
+  			<index value="$string" pos="$i" size="1" out="$c" /> 
+  			<lib-strlen string="$c" out="$len-c" /> 
+  		</while>
+</function>
+<function define="ReadConfig">
+	<store-getstat root="" name="$cgpn" out-error="$error"/>
+	<if cond="$error">
+		<store-mkdir root="" name="$cgpn"/> 
+	</if>
+	<store-del root="$cgpn" name="/Messen.txt"/> 
+	<store-cookie root="" name="IM.txt" out="$IM"/>
+	<store-cookie root="" name="RC.txt" out="$RC"/>
+	<store-cookie root="" name="TH.txt" out="$TH"/>
+	<store-cookie root="" name="EM.txt" out="$EM"/>
+	<store-cookie root="" name="TX.txt" out="$TX"/>
+	<switch var="$TH">
+		<case equal="">
+			<assign out="$TH" value="20000" />	
+		</case>
+	</switch>
+	<switch var="$TX">
+		<case equal="">
+			<assign out="$TX" value=" Raumalarm!" />	
+		</case>
+	</switch>
+
+</function>
+<function define="Alarm">
+	<switch var="$EM">
+		<case not-equal="">
+		    <assign out="$to" value="$EM"/>
+		    <assign out="$from" value="$to"/>    <!--from email = to address by default-->
+                    <assign out="$subject" value="$TX"/>
+		    <assign out="$server" value=""/>     <!--optional, outgoing smtp server-->
+                    <assign out="$user" value=""/>       <!--optional, authentication info-->
+                    <assign out="$password" value=""/>   <!--optional, authentication info-->
+                    <assign out="$file" value=""/>       <!-- <assign out="$file" value="$vm"/> experimental -->
+                    <exec url="mailto:$to?from=$to&amp;subject=$subject&amp;subject=$cgpn&amp;srv=$server&amp;usr=$user&amp;pwd=$password&amp;file=$file"/>
+		</case>
+	</switch>
+	<switch var="$IM">
+		<case not-equal="">
+			<lib-strcat string="$cgpn" string2="$TX" out-string="$ctrra" />
+			<pbx-im cgpn="$RC" e164="$IM" text="$ctrra"/> 
+		</case>
+	</switch>
+	<switch var="$Teiln">
+		<case not-equal="">
+			<pbx-record url="$OLine" barge-in="false" sec="5" />
+			<pbx-prepcallinfo cgpn="$size"/>
+			<pbx-xfer e164="$Teiln" />
+		</case>
+	</switch>
+</function>
+<function define="Main">
+	<pbx-getcallinfo out-cgpn="$cgpn" out-cdpn="$cdpn" out-leg2="$leg2" />
+	<call name="ReadConfig" />	
+	<store-cookie root="$cgpn" name="/Stat.txt" value=""/>	
+	<store-get root="$cgpn" name="/Online.g711a" out-url="$OLine" /> 
+	<store-del url="$OLine"/> 
+	<call name="wellcome" />
+	<switch var="$Teiln">
+		<case equal="">
+			<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+		 	<lib-strcat string="$Promt" string2="02.g711a" out-string="$Promt" />
+			<store-get root="" name="$Promt" out-url="$ctrl" />
+        		<pbx-prompt url="$ctrl" /> 
+		</case>
+		<case not-equal="">
+			<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+		 	<lib-strcat string="$Promt" string2="01.g711a" out-string="$Promt" />
+			<store-get root="" name="$Promt" out-url="$ctrl" /> 
+        		<pbx-prompt url="$ctrl" /> 
+			<assign out="$string" value="$Teiln" /> 
+			<call name="PromptString" /> 
+		</case>
+	</switch>
+	<event type="call-end">
+             <store-del root="$cgpn" name="/Stat.txt"/> 
+	     <dbg string="$cgpn"/> 
+        </event>
+	<lib-strcat string="Track" string2="$Sprache" out-string="$Promt" />
+	<lib-strcat string="$Promt" string2="03.g711a" out-string="$Promt" />
+	<store-get root="" name="$Promt" out-url="$ctrl" />
+	<pbx-prompt url="$ctrl" /> 
+	<wait sec="10"/>  
+	<store-get root="" name="beep.G711a" out-url="$ctrl" /> 
+        <pbx-prompt url="$ctrl" /> 
+	<store-cookie root="$cgpn" name="/Stat.txt" value=""/>
+   	<while notcond="$Look-ok">   
+		<timer name="vbguard" sec="60" />
+		<store-get root="$cgpn" name="/Pegel.g711a" out-url="$ctrl" />
+		<pbx-record url="$ctrl" barge-in="false" sec="5" />
+		<store-getstat root="$cgpn" name="/Pegel.g711a"  out-size="$size" /> 
+		<store-cookie root="$cgpn" name="/Pegel.txt" value="$size"/>
+		<switch var="$size">
+			<case greater="$TH">
+				<call name="Alarm" />
+				<pbx-record url="$OLine" barge-in="false" sec="30" />
+				<pbx-disc/>
+			</case>
+ 		</switch>
+		<wait sec="1"/>
+	</while>
+	<pbx-disc/>
+</function>
+</voicemail>
+<!-- Babylook wiki-src/xml/iBL 1,0,0,0 (C) innovaphone AG 2010-2012 -->
